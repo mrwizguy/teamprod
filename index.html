@@ -1,12 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Productions</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galaxy + About + Founder</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Team Productions</h1>
+  <!-- Starfield background -->
+  <canvas id="stars"></canvas>
+  <div class="galaxy-glow"></div>
+
+  <!-- Background video -->
+  <video id="bgVideo" class="bg-video" autoplay muted loop playsinline poster="poster.jpg">
+    <source src="background.mp4" type="video/mp4" />
+    <!-- <source src="background.webm" type="video/webm" /> -->
+  </video>
+
+  <!-- Existing Unmute FAB (kept) -->
+  <button id="unmuteBtn" class="unmute-btn" aria-label="Unmute video">🔊 Unmute</button>
+
+  <!-- NEW: Transparent mute + volume controls -->
+  <div class="video-controls">
+    <button id="muteToggle" aria-label="Mute/Unmute">🔇</button>
+    <input id="volumeSlider" type="range" min="0" max="1" step="0.05" value="0.7" />
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="center-wrap">
+      <img id="centerImage" src="center.png" alt="Logo" />
+    </div>
+    <div class="scroll-cue">Scroll</div>
+  </header>
+
+  <!-- ABOUT -->
+  <section class="about reveal">
+    <h2></h2>
+    <p>
+        we're a small team that likes building useful things. nothing flashy ; just tools that help people get stuff done without getting in the way.
+
+        we care about clean design, fast performance, and details you only notice when they're missing. we try to ship early, listen closely, and improve a little every day.
+
+        we're not trying to be everywhere. we'd rather make a few things that feel really good to use. if something breaks, we fix it. if you have an idea, we actually read it.
+
+        thanks for being here. if you want to say hi, we're around.
+    </p>
+  </section>
+
+  <!-- FOUNDER -->
+  <section class="founder reveal">
+    <div class="founder-card">
+      <img class="avatar" src="wiz.png" alt="wizguyy" />
+      <div class="founder-text">
+        <h3>Founder / Developer</h3>
+        <h4>wizguyy</h4>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEW: Footer buttons with tiny icons -->
+  <!-- FOOTER -->
+  <footer class="footer">
+    <a href="https://discord.com/oauth2/authorize?client_id=1352888733388505139&permissions=8&integration_type=0&scope=bot+applications.commands" class="footer-btn">
+      <img src="bot.png" alt="Bot icon" /> Bot Invite
+    </a>
+    <a href="https://discord.gg/zuSNcWp52s" class="footer-btn">
+      <img src="discord.png" alt="Discord icon" /> Discord
+    </a>
+  </footer>
+
+
+
+  <script>
+    // ====== Starfield with mouse repulsion ======
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    let W = canvas.width = window.innerWidth;
+    let H = canvas.height = window.innerHeight;
+
+    const STAR_COUNT = Math.min(250, Math.floor((W * H) / 8000));
+    const MAX_SPEED = 0.25;
+    const REPULSE_RADIUS = 120;
+    const REPULSE_FORCE = 0.9;
+    const TAIL = 0.2;
+
+    const mouse = { x: null, y: null, active: false };
+    addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; });
+    addEventListener('mouseleave', () => mouse.active = false);
+    addEventListener('touchstart', e => { const t=e.touches[0]; mouse.x=t.clientX; mouse.y=t.clientY; mouse.active=true; }, {passive:true});
+    addEventListener('touchmove',  e => { const t=e.touches[0]; mouse.x=t.clientX; mouse.y=t.clientY; mouse.active=true; }, {passive:true});
+    addEventListener('touchend',   () => mouse.active = false);
+
+    class Star {
+      constructor(){ this.reset(true); }
+      reset(rand=false){
+        this.x = rand ? Math.random()*W : (Math.random()<0.5?0:W);
+        this.y = rand ? Math.random()*H : Math.random()*H;
+        const a = Math.random()*Math.PI*2, s=Math.random()*MAX_SPEED;
+        this.vx = Math.cos(a)*s; this.vy = Math.sin(a)*s;
+        this.size = Math.random()*1.6 + 0.2;
+        this.alpha = Math.random()*0.6 + 0.4;
+        this.tw = (Math.random()*0.006)+0.002;
+      }
+      update(){
+        if(mouse.active){
+          const dx=this.x-mouse.x, dy=this.y-mouse.y;
+          const d2=dx*dx+dy*dy, r2=REPULSE_RADIUS*REPULSE_RADIUS;
+          if(d2<r2){
+            const d=Math.sqrt(d2)||0.001, nx=dx/d, ny=dy/d;
+            const f=(1-d/REPULSE_RADIUS)*REPULSE_FORCE;
+            this.vx += nx*f; this.vy += ny*f;
+          }
+        }
+        this.x+=this.vx; this.y+=this.vy;
+        this.vx*=0.98; this.vy*=0.98;
+        if(this.x<-5) this.x=W+5; if(this.x>W+5) this.x=-5;
+        if(this.y<-5) this.y=H+5; if(this.y>H+5) this.y=-5;
+        this.alpha += this.tw*(Math.random()<0.5?-1:1);
+        this.alpha = Math.max(0.15, Math.min(1, this.alpha));
+      }
+      draw(){
+        ctx.globalAlpha=this.alpha;
+        ctx.fillStyle='#fff';
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    const stars = Array.from({length: STAR_COUNT}, () => new Star());
+
+    function animate(){
+      ctx.fillStyle = `rgba(0,0,0,${TAIL})`;
+      ctx.fillRect(0,0,W,H);
+      for(const s of stars){ s.update(); s.draw(); }
+      requestAnimationFrame(animate);
+    }
+
+    addEventListener('resize', () => {
+      W = canvas.width = innerWidth;
+      H = canvas.height = innerHeight;
+    });
+
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+    animate();
+
+    // Fade-in center image
+    const centerImg = document.getElementById('centerImage');
+    const showImg = () => centerImg.classList.add('show');
+    centerImg.complete ? showImg() : centerImg.addEventListener('load', showImg);
+
+    // Reveal-on-scroll
+    const io = new IntersectionObserver(entries => {
+      for (const e of entries) if (e.isIntersecting) e.target.classList.add('visible');
+    }, { threshold: 0.2 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+
+  <script>
+    // ====== Background video unmute flow (kept) ======
+    const bgVideo = document.getElementById('bgVideo');
+    const unmuteBtn = document.getElementById('unmuteBtn');
+
+    if (bgVideo) {
+      bgVideo.setAttribute('playsinline', '');
+      bgVideo.setAttribute('webkit-playsinline', '');
+      bgVideo.muted = true;
+      bgVideo.play().catch(() => {/* user will click unmute */});
+    }
+
+    function unmuteVideo(){
+      try {
+        bgVideo.muted = false;
+        const p = bgVideo.play();
+        if (p && typeof p.then === 'function') {
+          p.then(() => unmuteBtn.classList.add('hidden'))
+           .catch(() => {/* keep button visible */});
+        } else {
+          unmuteBtn.classList.add('hidden');
+        }
+        // sync mute icon with state
+        if (!bgVideo.muted) document.getElementById('muteToggle').textContent = '🔊';
+      } catch (e) {}
+    }
+    unmuteBtn.addEventListener('click', unmuteVideo);
+
+    const tryOnce = () => { unmuteVideo(); window.removeEventListener('pointerdown', tryOnce); };
+    window.addEventListener('pointerdown', tryOnce);
+
+    // ====== NEW: mute + volume controls (adds, doesn't replace) ======
+    const muteToggle = document.getElementById('muteToggle');
+    const volumeSlider = document.getElementById('volumeSlider');
+
+    // initial states
+    volumeSlider.value = 0.7;
+    bgVideo.volume = 0.7;
+    muteToggle.textContent = bgVideo.muted ? '🔇' : '🔊';
+
+    muteToggle.addEventListener('click', () => {
+      bgVideo.muted = !bgVideo.muted;
+      muteToggle.textContent = bgVideo.muted ? '🔇' : '🔊';
+      if (!bgVideo.paused) bgVideo.play().catch(()=>{});
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      const v = Number(e.target.value);
+      bgVideo.volume = v;
+      if (v === 0) {
+        bgVideo.muted = true;
+        muteToggle.textContent = '🔇';
+      } else if (bgVideo.muted) {
+        // if user raises volume from zero, unmute to hear it
+        bgVideo.muted = false;
+        muteToggle.textContent = '🔊';
+      }
+    });
+  </script>
 </body>
 </html>
