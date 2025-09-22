@@ -29,6 +29,7 @@ html, body {
 .hero {
   min-height: 95vh;                 /* slightly less tall */
   position: relative;
+  top: 165px;
   z-index: 2;
   display: grid;
   place-items: center;
